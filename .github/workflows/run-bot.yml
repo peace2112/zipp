@@ -1,0 +1,53 @@
+name: Run Zipp Bot
+
+on:
+  workflow_dispatch:      # Manual run ရန်
+  schedule:
+    - cron: '0 */5 * * *' # 5 နာရီတစ်ကြိမ် Auto restart ရန်
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 355   # GitHub ရဲ့ 6 နာရီ limit ကို မကျော်ရန်
+
+    steps:
+      - name: 📥 Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 🛠️ Install System Libraries (ddddocr အတွက်)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libglib2.0-0
+
+      - name: 📦 Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install aiohttp aiohttp-socks aiodns ddddocr psutil requests python-telegram-bot
+
+      - name: 🔍 Verify Files
+        run: |
+          echo "Files in repo:"
+          ls -la
+          echo ""
+          echo "Checking .so file:"
+          ls -la *.so
+
+      - name: 🚀 Run Bot (Using compiled .so)
+        run: |
+          # .so ဖိုင်ကို run ရန် (Anti-tamper အလုပ်လုပ်မည်)
+          # module name ကို သုံးပြီး run ခြင်းဖြစ်သည်
+          python -c "import sirzipp"
+        timeout-minutes: 340
+        continue-on-error: true
+
+      - name: 💾 Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-logs
+          path: ./*.log
